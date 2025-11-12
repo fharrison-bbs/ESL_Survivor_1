@@ -750,8 +750,10 @@
             const target = e.target;
 
             // Allow default behavior for modal buttons and text inputs
-            // This is crucial for the virtual keyboard and button clicks to work
             if (target.closest('.modal-button') || target.closest('.nickname-input')) {
+                // This is a button or input. Let the browser handle it.
+                // Do NOT call preventDefault().
+                // Do NOT add to activeTouches.
                 return;
             }
             
@@ -760,6 +762,8 @@
 
             for (const touch of e.changedTouches) {
                 const touchId = touch.identifier;
+                if (activeTouches[touchId]) continue; // Already tracking this touch
+
                 const x = touch.clientX; const y = touch.clientY;
 
                 // Check for new touch question button
@@ -793,43 +797,54 @@
             }
         }
         function handleTouchMove(e) {
-             e.preventDefault();
+             // Only prevent default if we are tracking at least one of the changed touches
+             let shouldPreventDefault = false;
+
              for (const touch of e.changedTouches) {
                  const touchId = touch.identifier; // Get the touch ID
-                 // Check using the correct touchId variable
-                 if (touchId === joystickTouchId && joystickArea && activeTouches[touchId]) {
-                     activeTouches[touchId].currentX = touch.clientX;
-                     activeTouches[touchId].currentY = touch.clientY;
+                 if (activeTouches[touchId]) { // Is this a touch we are managing?
+                    shouldPreventDefault = true;
 
-                     const deltaX = touch.clientX - joystickStart.x;
-                     const deltaY = touch.clientY - joystickStart.y;
-                     const angle = Math.atan2(deltaY, deltaX);
-                     const distance = Math.min(joystickArea.clientWidth / 3, Math.hypot(deltaX, deltaY));
-                     const moveX = distance * Math.cos(angle);
-                     const moveY = distance * Math.sin(angle);
-                     if(joystickNub) joystickNub.style.transform = `translate(-50%, -50%) translate(${moveX}px, ${moveY}px)`;
-                     moveInput.x = moveX / (joystickArea.clientWidth / 3);
-                     moveInput.y = moveY / (joystickArea.clientWidth / 3);
+                     // Check using the correct touchId variable
+                    if (touchId === joystickTouchId && joystickArea && activeTouches[touchId].type === 'move') {
+                         activeTouches[touchId].currentX = touch.clientX;
+                         activeTouches[touchId].currentY = touch.clientY;
+                         moveInput.x = moveX / (joystickArea.clientWidth / 3);
+                         moveInput.y = moveY / (joystickArea.clientWidth / 3);
+                     }
                  }
+             }
+
+             if (shouldPreventDefault) {
+                e.preventDefault();
              }
         }
         function handleTouchEnd(e) {
-            e.preventDefault();
+            let shouldPreventDefault = false;
+
             for (const touch of e.changedTouches) {
                 const touchId = touch.identifier; // Define touchId for this scope
-                if (touchId === joystickTouchId) {
-                    joystickTouchId = null;
-                    if(joystickNub) joystickNub.style.transform = 'translate(-50%, -50%)';
-                    moveInput = { x: 0, y: 0 };
+                if (activeTouches[touchId]) { // Was this a touch we were managing?
+                    shouldPreventDefault = true;
+
+                    if (touchId === joystickTouchId) {
+                        joystickTouchId = null;
+                        if(joystickNub) joystickNub.style.transform = 'translate(-50%, -50%)';
+                        moveInput = { x: 0, y: 0 };
+                    }
+                    if (activeTouches[touchId]?.type === 'shoot') {
+                        keys['touchShoot'] = false;
+                    }
+                    // Check if this was the question button touch
+                    if (activeTouches[touchId]?.type === 'question') {
+                        askQuestion(); // Trigger question on tap release
+                    }
+                    delete activeTouches[touchId];
                 }
-                if (activeTouches[touchId]?.type === 'shoot') {
-                    keys['touchShoot'] = false;
-                }
-                // Check if this was the question button touch
-                if (activeTouches[touchId]?.type === 'question') {
-                    askQuestion(); // Trigger question on tap release
-                }
-                delete activeTouches[touchId];
+            }
+
+            if (shouldPreventDefault) {
+                e.preventDefault();
             }
         }
 
