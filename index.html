@@ -18,6 +18,7 @@
             background-color: rgba(30, 30, 50, 0.9); padding: 2rem; border-radius: 15px; border: 3px solid #00ffff;
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.7); text-align: center; z-index: 100; width: 90%; max-width: 500px;
             font-family: 'Orbitron', sans-serif; letter-spacing: 1px;
+            touch-action: auto; /* <-- ADD THIS LINE */
         }
         .modal h1, .modal h2 { color: #00ffff; text-shadow: 0 0 5px #00ffff; }
         .modal p { font-family: 'Roboto', sans-serif; letter-spacing: 0; color: #ccc;}
@@ -30,6 +31,9 @@
         .nickname-input {
             background-color: rgba(0,0,0,0.5); border: 2px solid #00ffff; color: #00ffff;
             border-radius: 8px; padding: 0.5rem; text-align: center; font-family: 'Roboto', sans-serif;
+            touch-action: auto; /* <-- ADD THIS LINE */
+            -webkit-user-select: text; /* Allow text selection */
+            user-select: text; /* Allow text selection */
         }
         #xp-bar-container { width: 100%; height: 15px; background-color: #444; border: 2px solid #00ffff; border-radius: 5px; overflow: hidden; }
         #xp-bar-fill { height: 100%; background-color: #00ffff; width: 0%; transition: width 0.3s ease; }
@@ -69,8 +73,8 @@
         const getEl = id => document.getElementById(id);
         const gameContainer = document.getElementById('game-container');
         let canvas, ctx, hud, scoreText, levelText, timeText, xp_hud, xpBarFill,
-            startModal, nicknameInput, startButton, levelUpModal, upgradeOptionsContainer,
-            gameOverModal, finalNickname, finalScore, finalTime, restartButton,
+            levelUpModal, upgradeOptionsContainer,
+            gameOverModal, finalScore, finalTime, restartButton,
             touchControlsContainer, joystickArea, joystickNub, shootArea,
             ammoText, hudQuestionButton, questionModal, questionText, answerButtons,
             finalQuestionsCorrect, finalQuestionsIncorrect,
@@ -96,18 +100,9 @@
                 <div id="xp-hud" class="absolute bottom-0 left-0 right-0 p-3 bg-black/30 hidden">
                     <div id="xp-bar-container"><div id="xp-bar-fill"></div></div>
                 </div>
-                <div id="start-modal" class="modal">
-                    <h1 class="text-4xl sm:text-5xl mb-4">ESL Survivors</h1>
-                    <input type="text" id="nickname-input" class="nickname-input w-full rounded-lg p-2 text-center text-lg mb-4" maxlength="15" placeholder="ESL_Survivor">
-                    <h2 class="text-2xl sm:text-3xl mb-2">Instructions</h2>
-                    <div class="text-left text-sm sm:text-base mb-4">
-                        <p><kbd>W/A/S/D</kbd> or <kbd>Arrows</kbd>: Move</p>
-                        <p><kbd>Click/Space</kbd>: Shoot Laser</p>
-                        <p><kbd>Q</kbd> or <kbd>?</kbd> Button: Answer questions for ammo</p>
-                        <p class="mt-2 text-yellow-400"><b>Mobile:</b> Joystick to move, Tap right side to shoot.</p>
-                    </div>
-                    <button id="start-button" class="modal-button">Start Game</button>
-                </div>
+                
+                <!-- Start Modal Removed -->
+
                 <div id="question-modal" class="modal hidden">
                     <h2 class="text-3xl sm:text-4xl mb-4">Ammo Question!</h2>
                     <p id="question-text" class="text-lg mb-6"></p>
@@ -120,7 +115,7 @@
                 </div>
                 <div id="game-over-modal" class="modal hidden">
                      <h2 class="text-4xl sm:text-5xl text-red-500 mb-2">Game Over!</h2>
-                     <p id="final-nickname" class="text-2xl sm:text-3xl mb-4 font-bold"></p>
+                     <!-- Nickname Removed -->
                      <div class="text-left text-sm sm:text-base space-y-2 mb-6 bg-black/40 p-4 rounded-lg border border-cyan-500">
                          <p>Enemies Defeated: <span id="final-score" class="font-bold text-white float-right">0</span></p>
                          <p>Time Survived: <span id="final-time" class="font-bold text-white float-right">0s</span></p>
@@ -144,16 +139,14 @@
             timeText = getEl('time-text');
             xp_hud = getEl('xp-hud');
             xpBarFill = getEl('xp-bar-fill');
-            startModal = getEl('start-modal');
-            nicknameInput = getEl('nickname-input');
-            startButton = getEl('start-button');
+            // Start Modal elements removed
             questionModal = getEl('question-modal');
             questionText = getEl('question-text');
             answerButtons = getEl('answer-buttons');
             levelUpModal = getEl('level-up-modal');
             upgradeOptionsContainer = getEl('upgrade-options-container');
             gameOverModal = getEl('game-over-modal');
-            finalNickname = getEl('final-nickname');
+            // finalNickname removed
             finalScore = getEl('final-score');
             finalTime = getEl('final-time');
             finalQuestionsCorrect = getEl('final-questions-correct');
@@ -171,7 +164,7 @@
         let player, enemies = [], projectiles = [], xpOrbs = [], powerUpDrops = [];
         let score = 0, gameTime = 0, spawnTimer = 0, gamePaused = false, gameOver = false, correctAnswers = 0, incorrectAnswers = 0;
         let lastShotTime = 0, gameLoopId;
-        let playerNickname = "ESL_Survivor";
+        let playerNickname = "ESL_Survivor"; // Kept default nickname
         let isTouchDevice = false;
         let joystickTouchId = null;
         let joystickStart = { x: 0, y: 0 };
@@ -300,8 +293,7 @@
         }
 
         function startGame() {
-            if(nicknameInput) playerNickname = nicknameInput.value.trim() || "ESL_Survivor";
-            if(startModal) startModal.classList.add('hidden');
+            // Nickname and start modal logic removed
             if(hud) hud.classList.remove('hidden');
             if(xp_hud) xp_hud.classList.remove('hidden');
             init();
@@ -310,7 +302,7 @@
         function endGame() {
             gameOver = true;
             gamePaused = true; 
-            if(finalNickname) finalNickname.textContent = playerNickname;
+            // finalNickname removed
             if(finalScore) finalScore.textContent = score;
             if(finalTime) finalTime.textContent = Math.floor(gameTime) + 's';
             if(finalQuestionsCorrect) finalQuestionsCorrect.textContent = correctAnswers;
@@ -866,10 +858,11 @@
         resizeCanvas();
         detectTouchDevice(); // Detect touch before adding listeners
 
-        if (startButton) startButton.addEventListener('click', startGame);
+        // Start button listener removed
         if (restartButton) restartButton.addEventListener('click', () => {
-             if(startModal) startModal.classList.remove('hidden');
+             // startModal logic removed
              if(gameOverModal) gameOverModal.classList.add('hidden');
+             startGame(); // Restart the game directly
         });
         if (hudQuestionButton) hudQuestionButton.addEventListener('click', askQuestion);
 
@@ -878,6 +871,9 @@
         gameContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
         gameContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
         gameContainer.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+        // Start the game automatically on load
+        startGame();
     </script>
 </body>
 </html>
