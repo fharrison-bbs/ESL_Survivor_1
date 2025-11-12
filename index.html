@@ -200,16 +200,21 @@
         // --- Question Generator ---
         const questionGenerator = {
             verbBank: [
-                { base: 'go', past: 'went', ing: 'going' },
-                { base: 'eat', past: 'ate', ing: 'eating' },
-                { base: 'sleep', past: 'slept', ing: 'sleeping' },
-                { base: 'watch', past: 'watched', ing: 'watching' },
-                { base: 'study', past: 'studied', ing: 'studying' },
-                { base: 'play', past: 'played', ing: 'playing' },
-                { base: 'read', past: 'read', ing: 'reading' },
-                { base: 'write', past: 'wrote', ing: 'writing' },
-                { base: 'run', past: 'ran', ing: 'running' },
-                { base: 'see', past: 'saw', ing: 'seeing' },
+                { base: 'go', past: 'went', ing: 'going', object: 'to the store' },
+                { base: 'eat', past: 'ate', ing: 'eating', object: 'a large pizza' },
+                { base: 'sleep', past: 'slept', ing: 'sleeping', object: 'for ten hours' },
+                { base: 'watch', past: 'watched', ing: 'watching', object: 'a movie' },
+                { base: 'study', past: 'studied', ing: 'studying', object: 'for the test' },
+                { base: 'play', past: 'played', ing: 'playing', object: 'video games' },
+                { base: 'read', past: 'read', ing: 'reading', object: 'a good book' },
+                { base: 'write', past: 'wrote', ing: 'writing', object: 'a letter' },
+                { base: 'run', past: 'ran', ing: 'running', object: 'a marathon' },
+                { base: 'see', past: 'saw', ing: 'seeing', object: 'a concert' },
+                { base: 'buy', past: 'bought', ing: 'buying', object: 'new shoes' },
+                { base: 'make', past: 'made', ing: 'making', object: 'a cake' },
+                { base: 'take', past: 'took', ing: 'taking', object: 'the bus' },
+                { base: 'find', past: 'found', ing: 'finding', object: 'the keys' },
+                { base: 'give', past: 'gave', ing: 'giving', object: 'a gift' },
             ],
             subjects: [
                 { s: 'I', was: 'was', were: 'was' },
@@ -221,7 +226,7 @@
                 { s: 'They', was: 'were', were: 'were' }
             ],
             timeClauses: [
-                'yesterday', 'last night', 'when the phone rang', 'at 8 PM', 'while I was cooking', 'two days ago'
+                'yesterday', 'last night', 'at 8 PM', 'two days ago', 'last week', 'on Monday'
             ],
             getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
             shuffle(arr) {
@@ -232,48 +237,42 @@
                 }
                 return newArr;
             },
+            
+            // This is now the only question type
             createPastSimpleFill() {
                 const verb = this.getRandom(this.verbBank);
                 const subject = this.getRandom(this.subjects).s;
                 const time = this.getRandom(this.timeClauses);
-                const q = `${subject} [___] to the park ${time}.`;
-                const answers = this.shuffle([verb.past, verb.base, verb.ing, verb.base + 's']);
+                
+                // Create a grammatically correct sentence
+                const q = `${subject} [___] ${verb.object} ${time}.`;
+                
+                // Ensure 'read' (past) and 'read' (base) are handled if they appear
+                let distractors = [verb.base, verb.ing, verb.base + 's'];
+                if (verb.base === 'read') {
+                     distractors = [verb.ing, 'reads', 'readingg']; // 'read' base is same as past, provide specific distractors
+                }
+
+                // Get 4 unique options, ensuring the correct answer is present
+                let answers = [verb.past, ...distractors];
+                answers = answers.filter((v, i, a) => a.indexOf(v) === i); // Filter for unique
+                while (answers.length < 4) {
+                    answers.push(`verb${answers.length}`); // Add dummy distractors if needed
+                }
+                answers = answers.slice(0, 4); // Take first 4
+                
                 const c = answers.indexOf(verb.past);
-                return { q, a: answers, c };
+                // The shuffle is now part of the answer creation, but we'll shuffle just in case
+                return { q, a: this.shuffle(answers), c: this.shuffle(answers).indexOf(verb.past) };
             },
-            createPastContinuousFill() {
-                const verb = this.getRandom(this.verbBank);
-                const subject = this.getRandom(this.subjects);
-                const time = this.getRandom(this.timeClauses.filter(t => t.includes('when') || t.includes('while')));
-                const q = `${subject.s} [___] ${verb.ing} ${time}.`;
-                const answers = this.shuffle([`${subject.was} ${verb.ing}`, `${subject.were} ${verb.ing}`, verb.past, `is ${verb.ing}`]);
-                const c = answers.indexOf(`${subject.was} ${verb.ing}`);
-                return { q, a: answers, c };
-            },
-            createPastSimpleDid() {
-                const verb = this.getRandom(this.verbBank);
-                const subject = this.getRandom(this.subjects).s.toLowerCase();
-                const q = `Did ${subject} [___] the game yesterday?`;
-                const answers = this.shuffle([verb.base, verb.past, verb.ing, verb.base + 's']);
-                const c = answers.indexOf(verb.base);
-                return { q, a: answers, c };
-            },
-            createPastContinuousWasWere() {
-                const verb = this.getRandom(this.verbBank);
-                const subject = this.getRandom(this.subjects);
-                const q = `[___] ${subject.s.toLowerCase()} ${verb.ing} at 10 PM?`;
-                const answers = this.shuffle([subject.was, subject.were, 'is', 'are']);
-                const c = answers.indexOf(subject.was);
-                return { q, a: answers, c };
-            },
+
+            // Removed createPastContinuousFill
+            // Removed createPastSimpleDid
+            // Removed createPastContinuousWasWere
+
             generate() {
-                const generators = [
-                    this.createPastSimpleFill.bind(this),
-                    this.createPastContinuousFill.bind(this),
-                    this.createPastSimpleDid.bind(this),
-                    this.createPastContinuousWasWere.bind(this)
-                ];
-                return this.getRandom(generators)();
+                // Only generate this one type of question
+                return this.createPastSimpleFill();
             }
         };
 
