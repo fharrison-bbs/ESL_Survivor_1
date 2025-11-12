@@ -755,7 +755,17 @@
         
         // --- Touch Listeners ---
         function handleTouchStart(e) {
+            const target = e.target;
+
+            // Allow default behavior for modal buttons and text inputs
+            // This is crucial for the virtual keyboard and button clicks to work
+            if (target.closest('.modal-button') || target.closest('.nickname-input')) {
+                return;
+            }
+            
+            // For all other touches (joystick, shoot, question btn), prevent default browser behavior
             e.preventDefault();
+
             for (const touch of e.changedTouches) {
                 const touchId = touch.identifier;
                 const x = touch.clientX; const y = touch.clientY;
