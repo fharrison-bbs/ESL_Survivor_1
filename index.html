@@ -809,6 +809,17 @@
                     if (touchId === joystickTouchId && joystickArea && activeTouches[touchId].type === 'move') {
                          activeTouches[touchId].currentX = touch.clientX;
                          activeTouches[touchId].currentY = touch.clientY;
+                         
+                         // --- RE-ADDING THE MISSING LOGIC ---
+                         const deltaX = touch.clientX - joystickStart.x;
+                         const deltaY = touch.clientY - joystickStart.y;
+                         const angle = Math.atan2(deltaY, deltaX);
+                         const distance = Math.min(joystickArea.clientWidth / 3, Math.hypot(deltaX, deltaY));
+                         const moveX = distance * Math.cos(angle);
+                         const moveY = distance * Math.sin(angle);
+                         if(joystickNub) joystickNub.style.transform = `translate(-50%, -50%) translate(${moveX}px, ${moveY}px)`;
+                         // --- END OF MISSING LOGC ---
+                         
                          moveInput.x = moveX / (joystickArea.clientWidth / 3);
                          moveInput.y = moveY / (joystickArea.clientWidth / 3);
                      }
