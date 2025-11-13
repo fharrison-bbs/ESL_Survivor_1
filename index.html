@@ -263,7 +263,9 @@
                 
                 const c = answers.indexOf(verb.past);
                 // The shuffle is now part of the answer creation, but we'll shuffle just in case
-                return { q, a: this.shuffle(answers), c: this.shuffle(answers).indexOf(verb.past) };
+                // FIX: Shuffle *once* and use that result for both 'a' and 'c'
+                const shuffledAnswers = this.shuffle(answers);
+                return { q, a: shuffledAnswers, c: shuffledAnswers.indexOf(verb.past) };
             },
 
             // Removed createPastContinuousFill
@@ -780,9 +782,10 @@
                     if (x > joystickRect.left && x < joystickRect.right && y > joystickRect.top && y < joystickRect.bottom) {
                         if (joystickTouchId === null) {
                             joystickTouchId = touchId;
-                            joystickStart.x = joystickRect.left + joystickRect.width / 2;
-                            joystickStart.y = joystickRect.top + joystickRect.height / 2;
-                            activeTouches[touchId] = { type: 'move', startX: joystickStart.x, startY: joystickStart.y, currentX: x, currentY: y };
+                            // IMPROVEMENT: Set joystick center to the *actual touch position* for a "floating" joystick
+                            joystickStart.x = x; 
+                            joystickStart.y = y;
+                            activeTouches[touchId] = { type: 'move', startX: x, startY: y, currentX: x, currentY: y };
                         }
                     }
                 }
