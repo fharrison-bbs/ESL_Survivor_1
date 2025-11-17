@@ -237,7 +237,7 @@
             'SPEED': { name: "Speed Boost", description: "+25% Move Speed", apply: (p) => p.speed *= 1.25 },
             'FIRE_RATE': { name: "Rapid Fire", description: "-25% Firing Delay", apply: (p) => p.fireRate *= 0.75 },
             'DAMAGE': { name: "Damage Up", description: "+15 Damage", apply: (p) => p.projectileDamage += 15 },
-            'MULTISHOT': { name: "Spread Shot", description: "+2 Projectiles", apply: (p) => p.shotCount += 2 },
+            'MULTISHOT': { name: "Spread Shot", description: "+2 Projectiles", apply: (p) => p.shotCount += 4 },
             'PIERCE': { name: "Piercing Shot", description: "Shots pierce +2 enemies", apply: (p) => p.pierce += 2 },
             'RANGE': { name: "Long-Range", description: "+50% Projectile Lifetime", apply: (p) => p.projectileLifetime = (p.projectileLifetime || 3) * 1.5 },
             'PICKUP': { name: "XP Magnet", description: "+75% Pickup Radius", apply: (p) => p.pickupRadius *= 1.75 }
