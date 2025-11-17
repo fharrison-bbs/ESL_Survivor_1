@@ -199,7 +199,9 @@
         // --- Game State & Config ---
         let player, enemies = [], projectiles = [], xpOrbs = [], powerUpDrops = [];
         let particles = []; // <-- NEW: For particle effects
+        let enemyProjectiles = []; // <-- NEW: For enemy projectiles
         let score = 0, gameTime = 0, spawnTimer = 0, gamePaused = false, gameOver = false, correctAnswers = 0, incorrectAnswers = 0;
+        let bossSpawnedLevel5 = false, bossSpawnedLevel10 = false; // Track boss spawns
         let lastShotTime = 0, gameLoopId;
         let playerNickname = "ESL_Survivor"; // Kept default nickname
         let isTouchDevice = false;
@@ -230,7 +232,9 @@
             { id_key: "Robot", name: "Robot", size: 50, speed: 40, health: 120, xp: 40, shape: 'rect', color: '#4488ff', damage: 10, maxHealth: 120 }, // Blue rect
             { id_key: "Scout", name: "Scout", size: 15, speed: 220, health: 30, xp: 18, shape: 'square', color: '#ffff44', damage: 4, maxHealth: 30 }, // Yellow square
             { id_key: "Swarm", name: "Swarm", size: 7, speed: 250, health: 10, xp: 15, shape: 'square', color: '#88ff88', damage: 1, maxHealth: 10 }, // Green square
+            { id_key: "Flyer", name: "Flyer", size: 12, speed: 280, health: 25, xp: 20, shape: 'circle', color: '#ff88ff', damage: 3, maxHealth: 25 }, // Pink circle
         ];
+        const bossType = { id_key: "Boss", name: "Boss", size: 80, speed: 60, health: 500, xp: 200, shape: 'rect', color: '#ff0000', damage: 15, maxHealth: 500, isBoss: true, shootCooldown: 2000, lastShotTime: 0 }; // Large red boss
         // --- NEW: Insane Powerups ---
         const powerUpTypes = {
             'HEALTH': { name: "Health Pack", description: "+50 Max HP", apply: (p) => { p.maxHealth += 50; p.health = Math.min(p.maxHealth, p.health + 50); } },
@@ -274,6 +278,26 @@
             timeClauses: [
                 'yesterday', 'last night', 'at 8 PM', 'two days ago', 'last week', 'on Monday'
             ],
+            conjunctions: [
+                { conj: 'and', meaning: 'addition' },
+                { conj: 'but', meaning: 'contrast' },
+                { conj: 'because', meaning: 'reason' },
+                { conj: 'so', meaning: 'result' },
+                { conj: 'or', meaning: 'choice' },
+                { conj: 'although', meaning: 'contrast' },
+                { conj: 'when', meaning: 'time' },
+                { conj: 'while', meaning: 'time' }
+            ],
+            sentencePairs: [
+                { s1: 'I studied hard', s2: 'I passed the test', conjunction: 'so' },
+                { s1: 'She was tired', s2: 'she went to bed early', conjunction: 'so' },
+                { s1: 'I wanted to go out', s2: 'it was raining', conjunction: 'but' },
+                { s1: 'He likes pizza', s2: 'his sister prefers pasta', conjunction: 'but' },
+                { s1: 'They went home', s2: 'they were tired', conjunction: 'because' },
+                { s1: 'We stayed inside', s2: 'it was cold', conjunction: 'because' },
+                { s1: 'I was reading a book', s2: 'my brother was playing games', conjunction: 'while' },
+                { s1: 'She was cooking dinner', s2: 'he was watching TV', conjunction: 'while' }
+            ],
             getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
             shuffle(arr) {
                 let newArr = [...arr];
@@ -284,15 +308,15 @@
                 return newArr;
             },
             
-            // This is now the only question type
+            // Past Simple Fill-in-the-blank
             createPastSimpleFill() {
                 const verb = this.getRandom(this.verbBank);
                 const subject = this.getRandom(this.subjects).s;
                 const time = this.getRandom(this.timeClauses);
-                
+
                 // Create a grammatically correct sentence
                 const q = `${subject} [___] ${verb.object} ${time}.`;
-                
+
                 // Ensure 'read' (past) and 'read' (base) are handled if they appear
                 let distractors = [verb.base, verb.ing, verb.base + 's'];
                 if (verb.base === 'read') {
@@ -306,27 +330,87 @@
                     answers.push(`verb${answers.length}`); // Add dummy distractors if needed
                 }
                 answers = answers.slice(0, 4); // Take first 4
-                
+
                 // FIX: Shuffle *once* and use that result for both 'a' and 'c'
                 const shuffledAnswers = this.shuffle(answers);
                 return { q, a: shuffledAnswers, c: shuffledAnswers.indexOf(verb.past) };
             },
 
-            // Removed createPastContinuousFill
-            // Removed createPastSimpleDid
-            // Removed createPastContinuousWasWere
+            // Past Continuous Fill-in-the-blank
+            createPastContinuousFill() {
+                const verb = this.getRandom(this.verbBank);
+                const subject = this.getRandom(this.subjects);
+                const time = this.getRandom(this.timeClauses);
+
+                // Create a grammatically correct sentence: "Subject was/were [___] object time."
+                const q = `${subject.s} ${subject.was} [___] ${verb.object} ${time}.`;
+
+                // Correct answer is the -ing form
+                const correctAnswer = verb.ing;
+
+                // Create distractors
+                let distractors = [verb.past, verb.base, verb.base + 's'];
+
+                // Get 4 unique options
+                let answers = [correctAnswer, ...distractors];
+                answers = answers.filter((v, i, a) => a.indexOf(v) === i); // Filter for unique
+                while (answers.length < 4) {
+                    answers.push(`verb${answers.length}`); // Add dummy distractors if needed
+                }
+                answers = answers.slice(0, 4); // Take first 4
+
+                const shuffledAnswers = this.shuffle(answers);
+                return { q, a: shuffledAnswers, c: shuffledAnswers.indexOf(correctAnswer) };
+            },
+
+            // Conjunction Fill-in-the-blank
+            createConjunctionFill() {
+                const pair = this.getRandom(this.sentencePairs);
+                const correctAnswer = pair.conjunction;
+
+                // Create the question with blank
+                const q = `${pair.s1}, [___] ${pair.s2}.`;
+
+                // Create distractors from other conjunctions
+                let distractors = this.conjunctions
+                    .map(c => c.conj)
+                    .filter(c => c !== correctAnswer)
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, 3);
+
+                // Get 4 unique options
+                let answers = [correctAnswer, ...distractors];
+                answers = answers.filter((v, i, a) => a.indexOf(v) === i); // Filter for unique
+                while (answers.length < 4) {
+                    const extraConj = this.getRandom(this.conjunctions).conj;
+                    if (!answers.includes(extraConj)) {
+                        answers.push(extraConj);
+                    }
+                }
+                answers = answers.slice(0, 4); // Take first 4
+
+                const shuffledAnswers = this.shuffle(answers);
+                return { q, a: shuffledAnswers, c: shuffledAnswers.indexOf(correctAnswer) };
+            },
 
             generate() {
-                // Only generate this one type of question
-                return this.createPastSimpleFill();
+                // Randomly select one of the three question types
+                const questionTypes = [
+                    this.createPastSimpleFill,
+                    this.createPastContinuousFill,
+                    this.createConjunctionFill
+                ];
+                const randomType = this.getRandom(questionTypes);
+                return randomType.call(this);
             }
         };
 
         // --- Game Initialization ---
         function init() {
-            enemies = []; projectiles = []; xpOrbs = []; powerUpDrops = []; particles = []; // <-- Clear particles
+            enemies = []; projectiles = []; xpOrbs = []; powerUpDrops = []; particles = []; enemyProjectiles = []; // <-- Clear all arrays
             score = 0; gameTime = 0; spawnTimer = 0; gamePaused = false, gameOver = false;
             correctAnswers = 0; incorrectAnswers = 0;
+            bossSpawnedLevel5 = false; bossSpawnedLevel10 = false; // Reset boss tracking
             player = JSON.parse(JSON.stringify(playerStats));
             // Reset dash state
             player.isDashing = false;
@@ -414,10 +498,12 @@
             updatePlayer(delta);
             updateEnemies(delta);
             updateProjectiles(delta);
+            updateEnemyProjectiles(delta); // <-- NEW: Update enemy projectiles
             updateDrops(delta);
             updateParticles(delta); // <-- NEW: Update particles
             handleCollisions();
             spawnEnemies(delta);
+            checkBossSpawns(); // <-- NEW: Check for boss spawns
             updateHUD();
             updateCooldowns(); // Update dash cooldown UI
         }
@@ -482,10 +568,19 @@
                 const dx = player.x - e.x;
                 const dy = player.y - e.y;
                 const distSq = dx*dx + dy*dy;
-                if (distSq > e.size * e.size) { 
+                if (distSq > e.size * e.size) {
                     const dist = Math.sqrt(distSq);
                     e.x += (dx / dist) * e.speed * delta;
                     e.y += (dy / dist) * e.speed * delta;
+                }
+
+                // Boss shooting logic
+                if (e.isBoss) {
+                    const now = Date.now();
+                    if (now - e.lastShotTime >= e.shootCooldown) {
+                        e.lastShotTime = now;
+                        bossShoot(e);
+                    }
                 }
             });
         }
@@ -499,6 +594,35 @@
                     projectiles.splice(i, 1);
                 }
              }
+        }
+        function updateEnemyProjectiles(delta) {
+             for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+                const p = enemyProjectiles[i];
+                p.x += p.vx * delta;
+                p.y += p.vy * delta;
+                p.lifetime -= delta;
+                if (p.lifetime <= 0 || p.x < 0 || p.x > world.width || p.y < 0 || p.y > world.height) {
+                    enemyProjectiles.splice(i, 1);
+                }
+             }
+        }
+        function bossShoot(boss) {
+            if (!player) return;
+            const dx = player.x - boss.x;
+            const dy = player.y - boss.y;
+            const angle = Math.atan2(dy, dx);
+            const speed = 200;
+
+            enemyProjectiles.push({
+                x: boss.x,
+                y: boss.y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: 10,
+                damage: 20,
+                lifetime: 5,
+                color: '#ff0000' // Red ball
+            });
         }
         function updateDrops(delta) {
              xpOrbs.forEach(orb => {
@@ -593,6 +717,21 @@
                      xpOrbs.splice(i, 1);
                  }
             }
+            // Enemy Projectiles vs Player
+            for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+                const p = enemyProjectiles[i];
+                if (player.isDashing) continue; // Invincible while dashing
+                const dx = player.x - p.x; const dy = player.y - p.y;
+                if (dx*dx + dy*dy < (player.size + p.size) * (player.size + p.size)) {
+                    player.health -= p.damage;
+                    spawnParticleEmitter(p.x, p.y, '#ff0000', 5); // Red impact
+                    enemyProjectiles.splice(i, 1);
+                    if (player.health <= 0) {
+                        player.health = 0;
+                        endGame();
+                    }
+                }
+            }
         }
 
         function handleEnemyHit(enemy, damage) {
@@ -630,6 +769,34 @@
                 id: Math.random(), x: x, y: y, ...type,
                 health: type.health * (1 + gameTime / 90),
                 maxHealth: type.health * (1 + gameTime / 90)
+            });
+        }
+        function checkBossSpawns() {
+            if (!player) return;
+
+            // Spawn boss at level 5
+            if (player.level >= 5 && !bossSpawnedLevel5) {
+                bossSpawnedLevel5 = true;
+                spawnBoss();
+            }
+
+            // Spawn boss at level 10
+            if (player.level >= 10 && !bossSpawnedLevel10) {
+                bossSpawnedLevel10 = true;
+                spawnBoss();
+            }
+        }
+        function spawnBoss() {
+            const spawnDist = Math.max(canvas.width, canvas.height) / 2 + 150;
+            const angle = Math.random() * Math.PI * 2;
+            const x = player.x + Math.cos(angle) * spawnDist;
+            const y = player.y + Math.sin(angle) * spawnDist;
+
+            enemies.push({
+                id: Math.random(), x: x, y: y, ...bossType,
+                health: bossType.health,
+                maxHealth: bossType.health,
+                lastShotTime: Date.now() // Initialize shooting timer
             });
         }
         function shoot(angle) {
@@ -715,6 +882,7 @@
             drawWorld();
             xpOrbs.forEach(orb => drawDrop(orb));
             projectiles.forEach(p => drawProjectile(p));
+            enemyProjectiles.forEach(p => drawEnemyProjectile(p)); // <-- NEW: Draw enemy projectiles
             enemies.forEach(e => drawEnemy(e)); // <-- Updated function
             particles.forEach(p => drawParticle(p)); // <-- NEW: Draw particles
             drawPlayerCharacter();
@@ -786,6 +954,10 @@
              ctx.fillStyle = e.color; // Use enemy's color
              if (e.shape === 'rect') {
                 ctx.fillRect(e.x - e.size / 2, e.y - e.size * 0.75, e.size, e.size * 1.5); // Draw rect
+             } else if (e.shape === 'circle') {
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.size / 2, 0, Math.PI * 2);
+                ctx.fill();
              } else {
                 ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size); // Default to square
              }
@@ -807,6 +979,13 @@
             ctx.fillStyle = '#00ffff'; // Cyan laser
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawEnemyProjectile(p) {
+            ctx.fillStyle = p.color; // Red ball
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fill();
         }
         
