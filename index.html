@@ -234,14 +234,14 @@
             { id_key: "Swarm", name: "Swarm", size: 7, speed: 250, health: 10, xp: 15, shape: 'square', color: '#88ff88', damage: 1, maxHealth: 10 }, // Green square
             { id_key: "Flyer", name: "Flyer", size: 12, speed: 280, health: 25, xp: 20, shape: 'circle', color: '#ff88ff', damage: 3, maxHealth: 25 }, // Pink circle
         ];
-        const bossType = { id_key: "Boss", name: "Boss", size: 80, speed: 60, health: 900, xp: 2000, shape: 'rect', color: '#ff0000', damage: 25, maxHealth: 500, isBoss: true, shootCooldown: 200, lastShotTime: 0 }; // Large red boss
+        const bossType = { id_key: "Boss", name: "Boss", size: 80, speed: 90, health: 900, xp: 2000, shape: 'rect', color: '#ff0000', damage: 250, maxHealth: 500, isBoss: true, shootCooldown: 200, lastShotTime: 0 }; // Large red boss
         // --- NEW: Insane Powerups ---
         const powerUpTypes = {
             'HEALTH': { name: "Health Pack", description: "+50 Max HP", apply: (p) => { p.maxHealth += 50; p.health = Math.min(p.maxHealth, p.health + 50); } },
-            'SPEED': { name: "Speed Boost", description: "+25% Move Speed", apply: (p) => p.speed *= 1.25 },
-            'FIRE_RATE': { name: "Rapid Fire", description: "-25% Firing Delay", apply: (p) => p.fireRate *= 0.75 },
+            'SPEED': { name: "Speed Boost", description: "+25% Move Speed", apply: (p) => p.speed *= 1.8 },
+            'FIRE_RATE': { name: "Rapid Fire", description: "-25% Firing Delay", apply: (p) => p.fireRate *= 1.75 },
             'DAMAGE': { name: "Damage Up", description: "+15 Damage", apply: (p) => p.projectileDamage += 15 },
-            'MULTISHOT': { name: "Spread Shot", description: "+2 Projectiles", apply: (p) => p.shotCount += 4 },
+            'MULTISHOT': { name: "Spread Shot", description: "+2 Projectiles", apply: (p) => p.shotCount += 2 },
             'PIERCE': { name: "Piercing Shot", description: "Shots pierce +2 enemies", apply: (p) => p.pierce += 2 },
             'RANGE': { name: "Long-Range", description: "+50% Projectile Lifetime", apply: (p) => p.projectileLifetime = (p.projectileLifetime || 3) * 1.5 },
             'PICKUP': { name: "XP Magnet", description: "+75% Pickup Radius", apply: (p) => p.pickupRadius *= 1.75 }
