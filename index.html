@@ -481,7 +481,7 @@
                 if (keys['KeyW'] || keys['ArrowUp']) targetVY = -player.speed;
                 if (keys['KeyS'] || keys['ArrowDown']) targetVY = player.speed;
                 if (keys['KeyA'] || keys['ArrowLeft']) targetVX = -player.speed;
-                if (keys['KeyD'] || keys['ArrowRight']) targetVY = player.speed;
+                if (keys['KeyD'] || keys['ArrowRight']) targetVX = player.speed;
                 if (targetVX !== 0 && targetVY !== 0) {
                      const length = Math.sqrt(targetVX * targetVX + targetVY * targetVY);
                      targetVX = (targetVX / length) * player.speed;
