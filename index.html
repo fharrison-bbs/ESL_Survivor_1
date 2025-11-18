@@ -205,6 +205,7 @@
         let lastShotTime = 0, gameLoopId;
         let playerNickname = "ESL_Survivor"; // Kept default nickname
         let isTouchDevice = false;
+        let deviceType = 'desktop'; // 'desktop', 'tablet', or 'mobile'
         let joystickTouchId = null;
         let joystickStart = { x: 0, y: 0 };
         let moveInput = { x: 0, y: 0 };
@@ -1252,15 +1253,90 @@
         }
 
         // --- Other Utility Functions ---
-        function detectTouchDevice() {
-            isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-            if(touchControlsContainer) { 
-                if (isTouchDevice) {
-                    touchControlsContainer.classList.remove('hidden');
-                    if(hudQuestionButton) hudQuestionButton.style.display = 'none'; // Hide desktop button
+        function detectDeviceType() {
+            // Detect if device has touch capability
+            const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+            // Get screen dimensions
+            const screenWidth = window.screen.width;
+            const screenHeight = window.screen.height;
+            const maxDimension = Math.max(screenWidth, screenHeight);
+            const minDimension = Math.min(screenWidth, screenHeight);
+
+            // Check user agent for additional clues
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isIOS = /ipad|iphone|ipod/.test(userAgent);
+            const isAndroid = /android/.test(userAgent);
+            const isTabletUA = /ipad/.test(userAgent) ||
+                              (/android/.test(userAgent) && !/mobile/.test(userAgent));
+
+            // Determine device type based on multiple factors
+            if (hasTouch) {
+                // If it has touch, check screen size to determine tablet vs mobile
+                // Tablets typically have minimum dimension > 600px and max > 800px
+                if (isTabletUA || (minDimension >= 600 && maxDimension >= 800)) {
+                    deviceType = 'tablet';
+                    isTouchDevice = true;
+                } else if (isIOS || isAndroid) {
+                    deviceType = 'mobile';
+                    isTouchDevice = true;
+                } else if (minDimension < 600) {
+                    deviceType = 'mobile';
+                    isTouchDevice = true;
                 } else {
-                    touchControlsContainer.classList.add('hidden'); // Hide touch controls
-                    if(hudQuestionButton) hudQuestionButton.style.display = 'inline-block'; // Show desktop button
+                    // Large touchscreen - could be tablet or touch-enabled laptop
+                    // If very large (> 1200px), probably a laptop with touchscreen
+                    if (minDimension > 1000) {
+                        deviceType = 'desktop';
+                        isTouchDevice = false; // Prefer keyboard/mouse for large touchscreens
+                    } else {
+                        deviceType = 'tablet';
+                        isTouchDevice = true;
+                    }
+                }
+            } else {
+                // No touch capability - it's a desktop
+                deviceType = 'desktop';
+                isTouchDevice = false;
+            }
+
+            // Apply control scheme based on device type
+            applyControlScheme();
+
+            // Log detection for debugging (can be removed in production)
+            console.log(`Device detected: ${deviceType} (Touch: ${isTouchDevice}, Screen: ${screenWidth}x${screenHeight})`);
+        }
+
+        function applyControlScheme() {
+            if(!touchControlsContainer) return;
+
+            if (deviceType === 'desktop') {
+                // Desktop: Use keyboard and mouse only
+                touchControlsContainer.classList.add('hidden');
+                if(hudQuestionButton) hudQuestionButton.style.display = 'inline-block';
+
+                // Optionally adjust UI sizing for desktop
+                if(canvas) {
+                    canvas.style.cursor = 'crosshair';
+                }
+            } else if (deviceType === 'tablet' || deviceType === 'mobile') {
+                // Tablet/Mobile: Use touch controls with joystick
+                touchControlsContainer.classList.remove('hidden');
+                if(hudQuestionButton) hudQuestionButton.style.display = 'none';
+
+                // Adjust joystick size for mobile vs tablet
+                if (deviceType === 'mobile' && joystickArea) {
+                    // Smaller joystick for mobile
+                    joystickArea.style.width = '120px';
+                    joystickArea.style.height = '120px';
+                } else if (deviceType === 'tablet' && joystickArea) {
+                    // Larger joystick for tablet
+                    joystickArea.style.width = '150px';
+                    joystickArea.style.height = '150px';
+                }
+
+                if(canvas) {
+                    canvas.style.cursor = 'default';
                 }
             }
         }
@@ -1269,12 +1345,14 @@
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
             }
+            // Re-detect device type on resize (useful for tablet rotation)
+            detectDeviceType();
         }
 
         // --- Initialization ---
         initUI(); // Initialize references to DOM elements FIRST
         resizeCanvas();
-        detectTouchDevice(); // Detect touch before adding listeners
+        detectDeviceType(); // Detect device type before adding listeners
 
         // Start button listener removed
         if (restartButton) restartButton.addEventListener('click', () => {
