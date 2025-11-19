@@ -276,14 +276,14 @@
         let biomeIndex = 0;
 
         const playerStats = {
-            x: world.width / 2, y: world.height / 2, size: 20, speed: 250, health: 100, maxHealth: 100, ammo: 50, // <-- Faster speed
-            fireRate: 500, projectileSpeed: 350, projectileSize: 8, projectileDamage: 25,
+            x: world.width / 2, y: world.height / 2, size: 20, speed: 250, health: 200, maxHealth: 500, ammo: 50, // <-- Faster speed
+            fireRate: 600, projectileSpeed: 550, projectileSize: 8, projectileDamage: 25,
             shotCount: 1, pickupRadius: 80, level: 1, xp: 0, xpToNextLevel: 100,
             pierce: 0, spread: 0,
             weaponAngle: 0, vx: 0, vy: 0,
             // --- Dash Stats ---
-            dashSpeed: 1000,
-            dashDuration: 150, // in milliseconds
+            dashSpeed: 2000,
+            dashDuration: 250, // in milliseconds
             dashCooldown: 5000, // in milliseconds
             lastDashTime: 0,
             isDashing: false,
